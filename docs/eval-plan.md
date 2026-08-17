@@ -2,8 +2,10 @@
 
 ## 背景与关键技术结论
 
-目标:判断 Azure 现成能力(纯 LLM 直出、无 pre/post process)能 quick resolve
-哪些问题,哪些必须自研。两类问题:合并表头 → markdown;流程图 → 有语义的 md。
+场景:金融信息科技,语料为受控的内部金融文档(金融表格分析、图表 chart、
+公式为主)。目标:判断 Azure 现成能力(纯 LLM 直出、无 pre/post process)
+能 quick resolve 哪些问题,哪些必须自研。两类问题:合并表头 → markdown;
+流程图 / chart → 有语义的 md。
 
 1. **DI ≠ CU ≠ Vision Read。** Document Intelligence 是确定性版面分析
    (cell 级 JSON,无 LLM);Content Understanding 是 DI + 托管 LLM
@@ -52,4 +54,5 @@
 
 - 按 `stratum` 自动分层抽样,导出待标注清单;
 - 把表头展平草稿和 mermaid 草稿的提示词固化成脚本(Copilot 出草稿,
-  人工逐格核对后冻结为 ground truth)。
+  人工逐格核对后冻结为 ground truth);
+- 金融语料中公式常见,普查可补充 OMML(`m:oMath`)公式检测信号。

@@ -3,9 +3,10 @@
 评估 Azure 文档解析能力在两类问题上的边界:
 
 1. **Office 文档表格处理**:合并表头 → markdown(表头展平);
-2. **Diagram 语义化**:流程图 → 有语义的 markdown / mermaid。
+2. **Diagram 语义化**:流程图 / chart → 有语义的 markdown / mermaid。
 
-场景为制药 GMP,语料为受控文档。当前阶段(阶段一)交付 `doceval scan`:
+场景为**金融信息科技**,语料为受控的内部金融文档,以**金融表格分析、
+图表(chart)、公式**为主。当前阶段(阶段一)交付 `doceval scan`:
 纯 stdlib、零第三方依赖、完全确定性的 OOXML 语料普查工具,产出分层抽样依据。
 
 ## 安全红线(必读)
@@ -14,7 +15,8 @@
 - **凭据只进 `.env`**,仓库里只有 `.env.example`。
 - **原始文档绝不入库**。语料放内网路径,经 `DOCEVAL_CORPUS_DIR` 引用。
 - **Ground truth 与原文同级敏感,同样不入库**。
-- 普查产出的 CSV 含语料文件名,已被 `.gitignore` 排除,**不要强行添加**。
+- 普查产出的 CSV 含语料文件名(可能含金融业务信息),已被 `.gitignore`
+  排除,**不要强行添加**。
 - 误提交要**改历史**(如 `git filter-repo`)而非新增删除提交。
 
 ## 使用
