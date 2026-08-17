@@ -1,0 +1,30 @@
+# Credentials: only .env.example enters the repo
+.env
+
+# Scan output and any derived CSVs (may leak corpus file names)
+out/
+*.csv
+
+# Raw corpus and ground truth NEVER enter the repo
+corpus/
+ground_truth/
+*.docx
+*.docm
+*.doc
+*.pptx
+*.pptm
+*.ppt
+*.xlsx
+*.xls
+*.pdf
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+dist/
+build/
+*.egg-info/
+
+# OS
+.DS_Store
