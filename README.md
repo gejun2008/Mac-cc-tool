@@ -69,6 +69,13 @@ PYTHONPATH=src python3 -m unittest discover -s tests -v
 
 三泳道设计、执行顺序、指标与通过线见 [docs/eval-plan.md](docs/eval-plan.md)。
 
+## OCR 对照报告(Copilot 辅助)
+
+在工作电脑上用 Copilot 出对照明细表和最终评估报告:打开
+[docs/copilot-report-kit.md](docs/copilot-report-kit.md),按三步走
+(提示词 A 出草稿 → 人工逐格核对 → 提示词 B 汇总)。
+明细表与报告含语料内容,只存内网,不入库。
+
 ## 约定
 
 Python + uv;代码注释英文,文档中文。
