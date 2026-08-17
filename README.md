@@ -76,6 +76,11 @@ PYTHONPATH=src python3 -m unittest discover -s tests -v
 (提示词 A 出草稿 → 人工逐格核对 → 提示词 B 汇总)。
 明细表与报告含语料内容,只存内网,不入库。
 
+## 不支持项修复计划
+
+六项「不支持」问题的分阶段修复计划、优先级原则与决策门见
+[docs/fix-plan.md](docs/fix-plan.md)。当前处于阶段 0(底数与开关调研)。
+
 ## 约定
 
 Python + uv;代码注释英文,文档中文。
