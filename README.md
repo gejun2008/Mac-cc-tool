@@ -84,6 +84,9 @@ PYTHONPATH=src python3 -m unittest discover -s tests -v
 [docs/coverage-checklist.md](docs/coverage-checklist.md)——
 用作评估对照清单,每跑一个新引擎照着过一遍。
 
+各类问题的处理思路、候选方案(不限 Azure,含开源与 VLM)与 POC 批次,见
+[docs/solution-approach.md](docs/solution-approach.md)。
+
 ## 约定
 
 Python + uv;代码注释英文,文档中文。
