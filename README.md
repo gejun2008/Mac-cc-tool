@@ -78,8 +78,11 @@ PYTHONPATH=src python3 -m unittest discover -s tests -v
 
 ## 不支持项修复计划
 
-六项「不支持」问题的分阶段修复计划、优先级原则与决策门见
-[docs/fix-plan.md](docs/fix-plan.md)。当前处于阶段 0(底数与开关调研)。
+六项「不支持」问题与解决思路见 [docs/fix-plan.md](docs/fix-plan.md)。
+
+按类别整理的问题覆盖情况、尚未覆盖的缺口,见
+[docs/coverage-checklist.md](docs/coverage-checklist.md)——
+用作评估对照清单,每跑一个新引擎照着过一遍。
 
 ## 约定
 
