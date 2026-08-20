@@ -1,0 +1,1 @@
+Would you be open to sharing your codebase and your benchmark? We'd run your pipeline as-is, swap in DI at the parsing step, and see if the numbers actually move. If they do, we'll wrap it as a service you can drop into your loader step — if they don't, we'll say so.
