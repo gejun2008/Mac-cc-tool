@@ -1,0 +1,299 @@
+<!-- ===================================================================
+     FROZEN TEMPLATE — 不要修改本文件的任何 CSS 规则、class 名或 JS。
+     tools/render_report.py 会读取本文件并替换 <!--{{...}}--> 占位标记。
+     如需新增样式,先与作者确认。
+     =================================================================== -->
+<meta charset="utf-8">
+<title>解析方案 A/B 对比报告</title>
+<style>
+  :root{
+    --paper:#F4F5F2; --card:#FFFFFF;
+    --ink:#191C18; --ink-2:#5C6159; --ink-3:#8E948A;
+    --rule:#D6D9D1; --rule-2:#E7E9E3;
+    --A:#1F4E8C; --A-bg:#EAF0F8;
+    --B:#8F5E0E; --B-bg:#F7F0E1;
+    --pass:#2E7050; --pass-bg:#E4F0E9;
+    --fail:#A83232; --fail-bg:#F8E8E6;
+    --warn:#8A6D1F; --warn-bg:#F6EDD8;
+    --miss:#9AA096;
+    --mono: ui-monospace,"SF Mono","Cascadia Mono","Consolas","Liberation Mono",monospace;
+    --sans: "Inter",-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+       font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 28px 96px}
+
+  /* ---- masthead ---- */
+  .mast{padding:44px 0 22px;border-bottom:2px solid var(--ink)}
+  .mast h1{font-family:var(--mono);font-size:26px;font-weight:600;letter-spacing:-.02em;margin:0 0 14px}
+  .runmeta{display:flex;flex-wrap:wrap;gap:0 30px;font-family:var(--mono);font-size:11.5px;color:var(--ink-2)}
+  .runmeta b{color:var(--ink);font-weight:600}
+
+  /* ---- section chrome ---- */
+  .sec{margin-top:52px}
+  .sec-head{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--ink);padding-bottom:7px}
+  .sec-tag{font-family:var(--mono);font-size:11px;font-weight:600;background:var(--ink);
+           color:var(--paper);padding:2px 7px;letter-spacing:.06em}
+  .sec-head h2{font-size:17px;margin:0;font-weight:650;letter-spacing:-.01em}
+  .sec-head .sub{font-size:12px;color:var(--ink-3);margin-left:auto;font-family:var(--mono)}
+  .note{font-size:12.5px;color:var(--ink-2);margin:12px 0 0;max-width:74ch}
+
+  /* ---- L0 ---- */
+  .modes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+  .mode{background:var(--card);border:1px solid var(--rule);padding:15px 17px;display:flex;gap:14px}
+  .mode .spine{width:4px;flex:none;align-self:stretch}
+  .mode.loses-b .spine{background:var(--A)}
+  .mode.loses-a .spine{background:var(--B)}
+  .mode h3{margin:0 0 5px;font-size:14px;font-weight:650}
+  .mode p{margin:0 0 8px;font-size:12.5px;color:var(--ink-2)}
+  .mode .ev{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+  .mode .ev a{color:var(--A);text-decoration:none;border-bottom:1px dotted}
+
+  /* ---- tables ---- */
+  table.grid{width:100%;border-collapse:collapse;margin-top:18px;font-size:13px}
+  table.grid th{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.05em;
+                text-align:left;color:var(--ink-2);border-bottom:1px solid var(--ink);
+                padding:6px 10px;text-transform:uppercase}
+  table.grid td{border-bottom:1px solid var(--rule-2);padding:9px 10px;vertical-align:top}
+  table.grid tr:hover td{background:#FAFBF8}
+  .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .win-a{color:var(--A);font-weight:650}
+  .win-b{color:var(--B);font-weight:650}
+  .tie{color:var(--ink-3)}
+  .drill{font-family:var(--mono);font-size:11px;color:var(--ink-2);text-decoration:none;
+         border-bottom:1px dotted var(--ink-3);white-space:nowrap}
+  .drill:hover{color:var(--A);border-color:var(--A)}
+  .bar{display:flex;height:9px;width:150px;background:var(--rule-2)}
+  .bar i{display:block;height:100%}
+  .bar .a{background:var(--A)} .bar .b{background:var(--B)} .bar .n{background:var(--miss)}
+  .barlab{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-top:3px}
+
+  /* ---- filters ---- */
+  .filters{display:flex;gap:7px;flex-wrap:wrap;margin:20px 0 6px}
+  .filters button{font-family:var(--mono);font-size:11px;padding:4px 11px;cursor:pointer;
+                  background:transparent;border:1px solid var(--rule);color:var(--ink-2)}
+  .filters button:hover{border-color:var(--ink-2)}
+  .filters button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .filters button:focus-visible{outline:2px solid var(--A);outline-offset:2px}
+
+  /* ---- file group (折叠) ---- */
+  .fgroup{margin-top:22px;border-top:1px solid var(--rule)}
+  .fgroup > summary{list-style:none;cursor:pointer;padding:10px 2px;display:flex;
+                    align-items:center;gap:12px;font-family:var(--mono);font-size:12px}
+  .fgroup > summary::-webkit-details-marker{display:none}
+  .fgroup > summary::before{content:"▸";color:var(--ink-3);font-size:11px}
+  .fgroup[open] > summary::before{content:"▾"}
+  .fgroup > summary b{font-weight:650;font-size:12.5px}
+  .fgroup > summary .cnt{margin-left:auto;color:var(--ink-3)}
+  .fgroup > summary:focus-visible{outline:2px solid var(--A);outline-offset:2px}
+  .tiebox{font-family:var(--mono);font-size:11px;color:var(--ink-3);
+          background:#FAFBF8;border:1px solid var(--rule-2);padding:7px 12px;margin-top:10px}
+
+  /* ---- evidence card ---- */
+  .card{background:var(--card);border:1px solid var(--rule);margin-top:12px;display:flex}
+  .card[hidden]{display:none}
+  .card > .spine{width:5px;flex:none}
+  .card.v-a > .spine{background:var(--A)}
+  .card.v-b > .spine{background:var(--B)}
+  .card.v-tie > .spine{background:var(--miss)}
+  .card.v-both > .spine{background:repeating-linear-gradient(45deg,var(--miss),var(--miss) 4px,#C4C9BF 4px,#C4C9BF 8px)}
+  .card-body{flex:1;min-width:0}
+  .card-head{display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:10px 16px;
+             border-bottom:1px solid var(--rule-2);background:#FCFDFA}
+  .cid{font-family:var(--mono);font-size:12px;font-weight:650;color:var(--ink-3)}
+  .kind{font-family:var(--mono);font-size:10.5px;padding:2px 7px;border:1px solid var(--rule);
+        color:var(--ink-2);letter-spacing:.04em}
+  .loc{font-family:var(--mono);font-size:11px;color:var(--ink-3);min-width:0;
+       overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .verdict{margin-left:auto;font-family:var(--mono);font-size:11px;font-weight:650;
+           padding:2px 9px;white-space:nowrap}
+  .v-a .verdict{background:var(--A-bg);color:var(--A)}
+  .v-b .verdict{background:var(--B-bg);color:var(--B)}
+  .v-tie .verdict{background:#EDEEEA;color:var(--ink-2)}
+  .v-both .verdict{background:var(--warn-bg);color:var(--warn)}
+
+  .panes{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr) minmax(0,1fr)}
+  .panes.duo{grid-template-columns:1fr 1fr}
+  .pane{padding:13px 16px;border-right:1px solid var(--rule-2);min-width:0}
+  .pane:last-child{border-right:0}
+  .pane-lab{font-family:var(--mono);font-size:10px;letter-spacing:.07em;text-transform:uppercase;
+            color:var(--ink-3);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .pane-lab .dot{width:7px;height:7px;flex:none}
+  .pane-a .pane-lab .dot{background:var(--A)}
+  .pane-b .pane-lab .dot{background:var(--B)}
+
+  /* snippet:长文本折叠 */
+  .snip{position:relative}
+  .snippet{font-family:var(--mono);font-size:11.5px;line-height:1.65;color:var(--ink);
+           white-space:pre-wrap;word-break:break-word;margin:0;max-height:132px;overflow:hidden}
+  .snip.open .snippet{max-height:none}
+  .snip:not(.open) .fade{position:absolute;left:0;right:0;bottom:20px;height:34px;pointer-events:none;
+        background:linear-gradient(to bottom,rgba(255,255,255,0),#fff)}
+  .snip.open .fade{display:none}
+  .snip .more{font-family:var(--mono);font-size:10.5px;color:var(--ink-2);background:none;
+              border:0;border-bottom:1px dotted var(--ink-3);padding:0;margin-top:5px;cursor:pointer}
+  .snip .more:hover{color:var(--A)}
+  .snip .more:focus-visible{outline:2px solid var(--A);outline-offset:2px}
+
+  mark.hit{background:var(--pass-bg);color:var(--pass);font-weight:650;padding:0 2px}
+  mark.gap{background:var(--fail-bg);color:var(--fail);font-weight:650;padding:0 3px;text-decoration:line-through}
+  mark.wrong{background:var(--warn-bg);color:var(--warn);font-weight:650;padding:0 2px}
+
+  .flag{font-family:var(--mono);font-size:11px;margin-top:9px;font-weight:600}
+  .flag.ok{color:var(--pass)} .flag.no{color:var(--fail)} .flag.mid{color:var(--warn)}
+
+  /* crop:svg 与 png 同等处理 */
+  .crop{border:1px solid var(--rule);background:#F1F2EE;position:relative}
+  .crop svg, .crop img{display:block;width:100%;height:auto}
+  .crop-cap{font-family:var(--mono);font-size:10px;color:var(--ink-3);padding:4px 6px;
+            border-top:1px solid var(--rule);background:#FBFCF9}
+  .crop.unresolved{background:#FAFBF8;border-style:dashed;padding:14px 12px}
+  .crop.unresolved .why{font-family:var(--mono);font-size:10.5px;color:var(--warn)}
+  .gt{font-family:var(--mono);font-size:11px;color:var(--ink-2);margin-top:9px}
+  .gt b{color:var(--ink)}
+
+  .card-foot{padding:8px 16px;border-top:1px solid var(--rule-2);font-family:var(--mono);
+             font-size:10.5px;color:var(--ink-3);display:flex;gap:16px;flex-wrap:wrap}
+  .card-foot a{color:var(--ink-2);text-decoration:none;border-bottom:1px dotted var(--rule)}
+  .card-foot a:hover{color:var(--A);border-color:var(--A)}
+
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:10.5px;
+          color:var(--ink-2);padding:9px 16px 0}
+  .legend span{display:flex;align-items:center;gap:5px}
+  .legend i{width:11px;height:11px;display:block;border:1px solid rgba(0,0,0,.15)}
+
+  footer{margin-top:60px;padding-top:16px;border-top:1px solid var(--rule);
+         font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+
+  @media (max-width:900px){
+    .modes{grid-template-columns:1fr}
+    .panes,.panes.duo{grid-template-columns:1fr}
+    .pane{border-right:0;border-bottom:1px solid var(--rule-2)}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+  @media print{
+    body{background:#fff}
+    .filters,.card-foot a{display:none}
+    .card{break-inside:avoid;page-break-inside:avoid;border-color:#999}
+    .fgroup{break-inside:auto}
+    .snippet{max-height:none}
+    .snip .fade,.snip .more{display:none}
+    .sec{break-before:auto}
+  }
+</style>
+
+<div class="wrap">
+<header class="mast"><h1>解析方案 A/B 对比报告</h1><div class="runmeta"><span><b>A</b> Azure Layout OCR (prebuilt-layout)</span><span><b>B</b> Local Loader (markitdown)</span><span><b>样本</b> 11 文件 / 展示 3</span><span><b>GT</b> 3 文件人工复核</span><span><b>状态</b> DEMO · 数据为假</span></div></header>
+<section class="sec"><div class="sec-head"><span class="sec-tag">L0</span><h2>失效模式</h2><span class="sub">按现象聚合 · 跨文件</span></div><p class="note">选型结论由失效模式决定,不由平均分决定。每条下挂具体证据卡,可直接核验。</p><div class="modes"><div class="mode loses-b"><div class="spine"></div><div><h3>B 在版面型文档上丢表格</h3><p>pptx / 扫描版 pdf 中,B 把表格降级为无分隔符的连续文本行,markdown 表格结构完全丢失。docx 上不出现。</p><div class="ev">5/5 版面文件 · 12/12 张表 · 证据 <a href="#c02">#02</a> <a href="#c06">#06</a></div></div></div><div class="mode loses-a"><div class="spine"></div><div><h3>A 在流式 docx 上漏正文数字</h3><p>A 走 OCR 路径,页眉页脚与正文混排处出现数字吞并;B 直读 XML 不受影响。</p><div class="ev">3/6 docx · 19 个数字 · 证据 <a href="#c05">#05</a></div></div></div><div class="mode loses-b"><div class="spine"></div><div><h3>B 阅读顺序按 shape 索引而非视觉流</h3><p>pptx 多列版面下 B 按 XML 中 shape 出现顺序输出,与人读顺序交叉。</p><div class="ev">Kendall τ · A 0.94 / B 0.38 · 证据 <a href="#c03">#03</a></div></div></div><div class="mode loses-b"><div class="spine"></div><div><h3>B 输出的 markdown 表格列数不一致</h3><p>分隔行与数据行列数不匹配,导致渲染器整表回退为纯文本,下游 chunking 会把整张表当一段。</p><div class="ev">9 处 / 3 文件 · 证据 <a href="#c04">#04</a></div></div></div></div></section>
+<section class="sec"><div class="sec-head"><span class="sec-tag">L1</span><h2>总览记分卡</h2><span class="sub">按实例计,非按文件平均</span></div><p class="note">平均分会被文件数量结构带偏。这里统计实例级净胜负:同一 anchor 上 A 对 B 错记 A 独胜。</p><table class="grid"><thead><tr><th>指标</th><th>实例数</th><th>A 独胜</th><th>B 独胜</th><th>共同失败</th><th>分布</th><th>下钻</th></tr></thead><tbody><tr><td>数字 Recall</td><td class='num'>412</td><td class='num win-a'>88</td><td class='num win-b'>61</td><td class='num'>23</td><td><div class='bar'><i class='a' style='width:21%'></i><i class='b' style='width:15%'></i><i class='n' style='width:6%'></i></div><div class='barlab'>另有 240 个 anchor 两侧一致</div></td><td><a class="drill" href="#c01">→ 下钻</a></td></tr><tr><td>关键表格缺失</td><td class='num'>31</td><td class='num win-a'>12</td><td class='num win-b'>0</td><td class='num'>1</td><td><div class='bar'><i class='a' style='width:39%'></i><i class='b' style='width:0%'></i><i class='n' style='width:3%'></i></div><div class='barlab'>B 无独胜项</div></td><td><a class="drill" href="#c02">→ 下钻</a></td></tr><tr><td>表格内容质量 (TEDS)</td><td class='num'>18</td><td class='num win-a'>14</td><td class='num win-b'>1</td><td class='num'>3</td><td><div class='bar'><i class='a' style='width:78%'></i><i class='b' style='width:6%'></i><i class='n' style='width:17%'></i></div><div class='barlab'>均值 A 0.82 / B 0.31</div></td><td><a class="drill" href="#c06">→ 下钻</a></td></tr><tr><td>阅读顺序 (Kendall τ)</td><td class='num'>27</td><td class='num win-a'>19</td><td class='num win-b'>2</td><td class='num'>0</td><td><div class='bar'><i class='a' style='width:70%'></i><i class='b' style='width:7%'></i><i class='n' style='width:0%'></i></div><div class='barlab'>均值 A 0.94 / B 0.38</div></td><td><a class="drill" href="#c03">→ 下钻</a></td></tr><tr><td>Markdown 语法</td><td class='num'>11</td><td class='num win-a'>8</td><td class='num win-b'>1</td><td class='num'>0</td><td><div class='bar'><i class='a' style='width:73%'></i><i class='b' style='width:9%'></i><i class='n' style='width:0%'></i></div><div class='barlab'>错误数 A 3 / B 27</div></td><td><a class="drill" href="#c04">→ 下钻</a></td></tr></tbody></table></section>
+<section class="sec"><div class="sec-head"><span class="sec-tag">L2</span><h2>逐文件</h2><span class="sub">每格挂实例编号</span></div><table class="grid"><thead><tr><th>文件</th><th>参照</th><th>数字 Recall</th><th>表格缺失</th><th>TEDS</th><th>阅读顺序 τ</th><th>MD 语法</th><th>结论</th></tr></thead><tbody><tr><td>GOP R11 v9.3<b>.docx</b></td><td><span class='num'>GT</span></td><td><span class='win-b'>B 65/68</span> · A 61/68 <a class='drill' href='#c05'>#05</a></td><td><span class='win-a'>A 0</span> · B 0</td><td><span class='win-a'>.91</span> / .88</td><td><span class='tie'>1.00 / 1.00</span></td><td><span class='tie'>0 / 0</span></td><td><span class='win-b'>B 胜 (+4 数字)</span></td></tr><tr><td>GOP R11 v9.3<b>.pdf</b></td><td><span class='num'>GT</span></td><td><span class='win-a'>A 66/68</span> · B 44/68 <a class='drill' href='#c01'>#01</a></td><td><span class='win-a'>A 0</span> · B 3 <a class='drill' href='#c02'>#02</a></td><td><span class='win-a'>.84</span> / .29</td><td><span class='win-a'>.96</span> / .61</td><td>0 / <span class='win-b'>7</span> <a class='drill' href='#c04'>#04</a></td><td><span class='win-a'>A 胜 (全指标)</span></td></tr><tr><td>Model Approval<b>.pptx</b></td><td><span class='num'>GT</span></td><td>A 7/40 · <span class='win-b'>B 13/40</span></td><td><span class='win-a'>A 0</span> · B 4 <a class='drill' href='#c06'>#06</a></td><td><span class='win-a'>.62</span> / .00</td><td><span class='win-a'>.89</span> / .21 <a class='drill' href='#c03'>#03</a></td><td>1 / <span class='win-b'>12</span></td><td><span class='win-a'>A 胜 (表格+顺序)</span></td></tr></tbody></table><p class="note">docx 行 B 在数字上反超,不是噪声,是路径差异(B 直读 OOXML,A 走 OCR)。结论应写成「按文档形态分流」,而非「整体选 A」。</p></section>
+<section class="sec"><div class="sec-head"><span class="sec-tag">L3</span><h2>证据卡</h2><span class="sub">一个 anchor = 一张卡</span></div><div class="filters" role="group" aria-label="按类型筛选证据卡"><button data-f="all" aria-pressed="true">全部</button><button data-f="number" aria-pressed="false">数字</button><button data-f="table" aria-pressed="false">表格</button><button data-f="order" aria-pressed="false">阅读顺序</button><button data-f="syntax" aria-pressed="false">语法</button><button data-f="a-fail" aria-pressed="false">仅 A 失败</button><button data-f="b-fail" aria-pressed="false">仅 B 失败</button><button data-f="both-fail" aria-pressed="false">共同失败</button></div><details class="fgroup" open><summary><b>GOP R11 v9.3.pdf</b><span class="cnt">3 张差异卡</span></summary><div class="tiebox">另有 138 个 anchor 两侧一致(tie),未展开。</div><article class="card v-b" id="c01" data-kind="number" data-fail="b"><div class="spine"></div><div class="card-body"><div class="card-head"><span class="cid">#01</span><span class="kind">数字缺失</span><span class="loc">GOP R11 v9.3.pdf · p4 · bbox [212,486,1018,512]</span><span class="verdict">A 胜</span></div><div class="panes"><div class="pane"><div class="pane-lab">原文裁剪</div><div class="crop"><svg viewBox="0 0 320 92" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="原文区域裁剪">
+<rect width="320" height="92" fill="#F1F2EE"/>
+<rect x="10" y="8" width="240" height="4" rx="2" fill="#D2D5CE"/>
+<rect x="10" y="18" width="190" height="4" rx="2" fill="#D2D5CE"/>
+<rect x="8" y="34" width="304" height="26" fill="none" stroke="#A83232" stroke-width="1.5" stroke-dasharray="4 2"/>
+<text x="14" y="52" font-family="monospace" font-size="11" fill="#191C18">1.2 · July 2019 · Annual review and</text>
+<rect x="10" y="68" width="215" height="4" rx="2" fill="#D2D5CE"/>
+<rect x="10" y="78" width="160" height="4" rx="2" fill="#D2D5CE"/></svg><div class="crop-cap">bbox 上下外扩 40px · 红框为 anchor 本体</div></div><div class="gt"><b>GT:</b> 1.2 / July 2019</div></div><div class="pane pane-a"><div class="pane-lab"><i class="dot"></i>A · Azure Layout OCR</div><div class="snip"><pre class="snippet">| 1.2 | July <mark class="hit">2019</mark> | Annual review and
+feedback from region and country SMEs |</pre><div class="fade"></div><button class="more" type="button">展开全部</button></div><div class="flag ok">✓ 命中 2/2</div></div><div class="pane pane-b"><div class="pane-lab"><i class="dot"></i>B · Local Loader</div><div class="snip"><pre class="snippet">1.2 July <mark class="gap">2019</mark> Annual review and
+feedback from region and country SMEs</pre><div class="fade"></div><button class="more" type="button">展开全部</button></div><div class="flag no">✗ 丢 1/2 · 年份被合入上一行页眉</div></div></div><div class="card-foot"><a href="#">打开原页</a><a href="#">A md L142</a><a href="#">B md L98</a><span>anchor 0xA31F · type=number · source=manual_gt</span></div></div></article><article class="card v-b" id="c02" data-kind="table" data-fail="b"><div class="spine"></div><div class="card-body"><div class="card-head"><span class="cid">#02</span><span class="kind">表格退化</span><span class="loc">GOP R11 v9.3.pdf · p4 · Version history 6×3</span><span class="verdict">A 胜</span></div><div class="panes"><div class="pane"><div class="pane-lab">原文裁剪</div><div class="crop"><svg viewBox="0 0 320 108" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="表格区域裁剪">
+<rect width="320" height="108" fill="#F1F2EE"/>
+<rect x="8" y="6" width="304" height="96" fill="none" stroke="#A83232" stroke-width="1.5" stroke-dasharray="4 2"/>
+<rect x="14" y="12" width="292" height="14" fill="#C9CDC4"/>
+<text x="18" y="22" font-family="monospace" font-size="8">Edition   Publication date       Details of changes</text>
+<g font-family="monospace" font-size="8" fill="#3A3F38">
+<rect x="14" y="28" width="292" height="13" fill="#E4E7DF"/>
+<text x="18" y="37">1.0       September 2016       Creation of draft GOP</text>
+<text x="18" y="51">1.1       June 2018            Updated draft from GTRF</text>
+<rect x="14" y="56" width="292" height="13" fill="#E4E7DF"/>
+<text x="18" y="65">1.2       July 2019            Annual review</text>
+<text x="18" y="79">2.0       June 2021            Annual Renewal, FIM</text>
+<rect x="14" y="84" width="292" height="13" fill="#E4E7DF"/>
+<text x="18" y="93">3.0       May 2022             Appendix 3 added</text></g></svg><div class="crop-cap">表格 bbox 整体裁剪</div></div><div class="gt"><b>GT:</b> 6 行 × 3 列,含表头</div></div><div class="pane pane-a"><div class="pane-lab"><i class="dot"></i>A · Azure Layout OCR</div><div class="snip"><pre class="snippet">| Edition | Publication date | Details |
+|---|---|---|
+| 1.0 | September 2016 | Creation... |
+| 1.1 | June 2018 | Updated draft... |
+| 1.2 | July 2019 | Annual review... |
+| 2.0 | June 2021 | Annual Renewal... |
+| 3.0 | May 2022 | Appendix 3 added |</pre><div class="fade"></div><button class="more" type="button">展开全部</button></div><div class="flag ok">✓ 6×3 结构完整 · TEDS 0.94</div></div><div class="pane pane-b"><div class="pane-lab"><i class="dot"></i>B · Local Loader</div><div class="snip"><pre class="snippet"><mark class="gap">Edition Publication date Details of
+changes 1.0 September 2016 Creation
+of draft GOP, Global instructions 1.1
+June 2018 Updated draft from GTRF
+Services and TRM Feedback 1.2 July
+2019 Annual review and feedback...</mark></pre><div class="fade"></div><button class="more" type="button">展开全部</button></div><div class="flag no">✗ 结构完全丢失 · TEDS 0.00 · 行列边界不可恢复</div></div></div><div class="card-foot"><a href="#">打开原页</a><a href="#">A md L88</a><a href="#">B md L61</a><span>anchor 0xB702 · rows=6 cols=3</span></div></div></article><article class="card v-b" id="c04" data-kind="syntax" data-fail="b"><div class="spine"></div><div class="card-body"><div class="card-head"><span class="cid">#04</span><span class="kind">MD 语法</span><span class="loc">GOP R11 v9.3.pdf · B 输出 L61–66</span><span class="verdict">A 胜</span></div><div class="panes"><div class="pane"><div class="pane-lab">原文裁剪</div><div class="crop unresolved"><div class="why">⚠ 语法错误不挂 bbox,证据为输出片段本身</div></div><div class="gt"><b>GT:</b> GFM 要求 表头列数 == 分隔行列数 == 数据行列数</div></div><div class="pane pane-a"><div class="pane-lab"><i class="dot"></i>A · Azure Layout OCR</div><div class="snip"><pre class="snippet">| Edition | Date | Details |
+|---|---|---|
+| 1.0 | Sep 2016 | Creation |</pre><div class="fade"></div><button class="more" type="button">展开全部</button></div><div class="flag ok">✓ 3 / 3 / 3 列一致</div></div><div class="pane pane-b"><div class="pane-lab"><i class="dot"></i>B · Local Loader</div><div class="snip"><pre class="snippet">| Edition | Date | Details |
+<mark class="wrong">|---|---|</mark>
+| 1.0 | Sep 2016 | Creation | <mark class="wrong">|</mark></pre><div class="fade"></div><button class="more" type="button">展开全部</button></div><div class="flag no">✗ 3 / 2 / 4 列 · 整表降级为纯文本</div></div></div><div class="card-foot"><a href="#">B md L61</a><span>rule=table_col_mismatch · severity=high</span></div></div></article></details><details class="fgroup" open><summary><b>GOP R11 v9.3.docx</b><span class="cnt">1 张差异卡</span></summary><div class="tiebox">另有 61 个 anchor 两侧一致(tie),未展开。</div><article class="card v-a" id="c05" data-kind="number" data-fail="a"><div class="spine"></div><div class="card-body"><div class="card-head"><span class="cid">#05</span><span class="kind">数字缺失</span><span class="loc">GOP R11 v9.3.docx · §3.2 · 页眉混排区</span><span class="verdict">B 胜</span></div><div class="panes"><div class="pane"><div class="pane-lab">原文裁剪</div><div class="crop unresolved"><div class="why">⚠ bbox unresolved — search_for 命中 4 次,拒绝猜测位置</div></div><div class="gt"><b>GT:</b> SDC must advise within 5 business days</div></div><div class="pane pane-a"><div class="pane-lab"><i class="dot"></i>A · Azure Layout OCR</div><div class="snip"><pre class="snippet">Page <mark class="wrong">7</mark> SDC must advise within
+<mark class="gap">5</mark> business days</pre><div class="fade"></div><button class="more" type="button">展开全部</button></div><div class="flag no">✗ 页眉页码被当正文,正文数字被吞</div></div><div class="pane pane-b"><div class="pane-lab"><i class="dot"></i>B · Local Loader</div><div class="snip"><pre class="snippet">SDC must advise within <mark class="hit">5</mark>
+business days</pre><div class="fade"></div><button class="more" type="button">展开全部</button></div><div class="flag ok">✓ 直读 XML,页眉天然分离</div></div></div><div class="card-foot"><a href="#">A md L317</a><a href="#">B md L241</a><span>该模式在 docx 上系统性出现 · 见 L0 第 2 条</span></div></div></article></details><details class="fgroup" open><summary><b>Model Approval Framework.pptx</b><span class="cnt">2 张差异卡</span></summary><div class="tiebox">另有 27 个 anchor 两侧一致(tie),未展开。</div><article class="card v-b" id="c03" data-kind="order" data-fail="b"><div class="spine"></div><div class="card-body"><div class="card-head"><span class="cid">#03</span><span class="kind">阅读顺序</span><span class="loc">Model Approval Framework.pptx · slide 3 · 9 blocks</span><span class="verdict">A 胜</span></div><div class="legend"><span><i style="background:#1F4E8C"></i>A 输出顺序</span><span><i style="background:#8F5E0E"></i>B 输出顺序</span><span><i style="background:#D2D5CE"></i>block bbox</span></div><div class="panes duo"><div class="pane pane-a"><div class="pane-lab"><i class="dot"></i>A · τ = 0.89</div><div class="crop"><svg viewBox="0 0 300 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="阅读顺序折线"><rect width="300" height="190" fill="#FCFDFA"/><g fill="#EDEFE9" stroke="#D2D5CE">
+<rect x="16" y="12" width="268" height="24"/>
+<rect x="16" y="48" width="80" height="46"/><rect x="110" y="48" width="80" height="46"/><rect x="204" y="48" width="80" height="46"/>
+<rect x="16" y="106" width="80" height="46"/><rect x="110" y="106" width="80" height="46"/><rect x="204" y="106" width="80" height="46"/>
+<rect x="16" y="164" width="268" height="16"/></g><polyline points="150,24 56,71 150,71 244,71 56,129 150,129 244,129 150,172" fill="none" stroke="#1F4E8C" stroke-width="1.6" opacity=".85"/><g font-family="monospace" font-size="9" fill="#fff"><circle cx="150" cy="24" r="8" fill="#1F4E8C"/><text x="147" y="27">1</text><circle cx="56" cy="71" r="8" fill="#1F4E8C"/><text x="53" y="74">2</text><circle cx="150" cy="71" r="8" fill="#1F4E8C"/><text x="147" y="74">3</text><circle cx="244" cy="71" r="8" fill="#1F4E8C"/><text x="241" y="74">4</text><circle cx="56" cy="129" r="8" fill="#1F4E8C"/><text x="53" y="132">5</text><circle cx="150" cy="129" r="8" fill="#1F4E8C"/><text x="147" y="132">6</text><circle cx="244" cy="129" r="8" fill="#1F4E8C"/><text x="241" y="132">7</text><circle cx="150" cy="172" r="8" fill="#1F4E8C"/><text x="147" y="175">8</text></g></svg><div class="crop-cap">标题 → 逐行从左到右 → 页脚。逆序对 2。</div></div></div><div class="pane pane-b"><div class="pane-lab"><i class="dot"></i>B · τ = 0.21</div><div class="crop"><svg viewBox="0 0 300 190" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="阅读顺序折线"><rect width="300" height="190" fill="#FCFDFA"/><g fill="#EDEFE9" stroke="#D2D5CE">
+<rect x="16" y="12" width="268" height="24"/>
+<rect x="16" y="48" width="80" height="46"/><rect x="110" y="48" width="80" height="46"/><rect x="204" y="48" width="80" height="46"/>
+<rect x="16" y="106" width="80" height="46"/><rect x="110" y="106" width="80" height="46"/><rect x="204" y="106" width="80" height="46"/>
+<rect x="16" y="164" width="268" height="16"/></g><polyline points="56,71 244,129 150,24 56,129 244,71 150,172 150,129" fill="none" stroke="#8F5E0E" stroke-width="1.6" opacity=".85"/><g font-family="monospace" font-size="9" fill="#fff"><circle cx="56" cy="71" r="8" fill="#8F5E0E"/><text x="53" y="74">1</text><circle cx="244" cy="129" r="8" fill="#8F5E0E"/><text x="241" y="132">2</text><circle cx="150" cy="24" r="8" fill="#8F5E0E"/><text x="147" y="27">3</text><circle cx="56" cy="129" r="8" fill="#8F5E0E"/><text x="53" y="132">4</text><circle cx="244" cy="71" r="8" fill="#8F5E0E"/><text x="241" y="74">5</text><circle cx="150" cy="172" r="8" fill="#8F5E0E"/><text x="147" y="175">6</text><circle cx="150" cy="129" r="8" fill="#8F5E0E"/><text x="147" y="132">7</text></g></svg><div class="crop-cap">按 shape XML 索引输出,交叉 11 次,标题排第 3 位。</div></div></div></div><div class="card-foot"><a href="#">打开原页</a><a href="#">A md L204</a><a href="#">B md L155</a><span>inversions A 2 / B 11 · n=9</span></div></div></article><article class="card v-b" id="c06" data-kind="table" data-fail="b"><div class="spine"></div><div class="card-body"><div class="card-head"><span class="cid">#06</span><span class="kind">表格内容质量</span><span class="loc">Model Approval Framework.pptx · slide 6 · 5×4 表 · 20 cells</span><span class="verdict">A 胜</span></div><div class="legend"><span><i style="background:#E4F0E9"></i>正确</span><span><i style="background:#F6EDD8"></i>内容错</span><span><i style="background:#F8E8E6"></i>缺失</span><span><i style="background:#EDEEEA"></i>多出</span></div><div class="panes duo"><div class="pane pane-a"><div class="pane-lab"><i class="dot"></i>A · TEDS 0.62 · 17/20 正确</div><div class="crop"><svg viewBox="0 0 300 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="单元格判定热力图"><rect width="300" height="130" fill="#FCFDFA"/><g stroke="#C9CDC4" stroke-width="1"><rect x="14" y="10" width="68" height="22" fill="#E4F0E9"/><rect x="82" y="10" width="68" height="22" fill="#E4F0E9"/><rect x="150" y="10" width="68" height="22" fill="#E4F0E9"/><rect x="218" y="10" width="68" height="22" fill="#E4F0E9"/><rect x="14" y="32" width="68" height="22" fill="#E4F0E9"/><rect x="82" y="32" width="68" height="22" fill="#E4F0E9"/><rect x="150" y="32" width="68" height="22" fill="#F6EDD8"/><rect x="218" y="32" width="68" height="22" fill="#E4F0E9"/><rect x="14" y="54" width="68" height="22" fill="#E4F0E9"/><rect x="82" y="54" width="68" height="22" fill="#E4F0E9"/><rect x="150" y="54" width="68" height="22" fill="#E4F0E9"/><rect x="218" y="54" width="68" height="22" fill="#E4F0E9"/><rect x="14" y="76" width="68" height="22" fill="#E4F0E9"/><rect x="82" y="76" width="68" height="22" fill="#F8E8E6"/><rect x="150" y="76" width="68" height="22" fill="#E4F0E9"/><rect x="218" y="76" width="68" height="22" fill="#E4F0E9"/><rect x="14" y="98" width="68" height="22" fill="#E4F0E9"/><rect x="82" y="98" width="68" height="22" fill="#E4F0E9"/><rect x="150" y="98" width="68" height="22" fill="#E4F0E9"/><rect x="218" y="98" width="68" height="22" fill="#F6EDD8"/></g></svg><div class="crop-cap">3 处偏差集中在第 3 列合并单元格附近</div></div></div><div class="pane pane-b"><div class="pane-lab"><i class="dot"></i>B · TEDS 0.00 · 0/20 正确</div><div class="crop"><svg viewBox="0 0 300 130" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="B 方案全部缺失"><rect width="300" height="130" fill="#FCFDFA"/><rect x="14" y="10" width="272" height="110" fill="#F8E8E6" stroke="#C9CDC4"/><text x="150" y="68" text-anchor="middle" font-family="monospace" font-size="10" fill="#A83232">无表格结构 · 20/20 缺失</text></svg><div class="crop-cap">B 输出为 18 行纯文本,无法与 GT 网格对齐</div></div></div></div><div class="card-foot"><a href="#">打开原页</a><a href="#">A md L402</a><a href="#">B md L288</a><span>TEDS-struct A 0.71 / B 0.00 · TEDS-content A 0.62 / B 0.00</span></div></div></article></details></section>
+<footer>DEMO 渲染 · 所有数字为假,仅用于验证模板管线</footer>
+</div>
+
+<script>
+(function(){
+  /* 证据卡筛选 */
+  var btns  = [].slice.call(document.querySelectorAll('.filters button'));
+  var cards = [].slice.call(document.querySelectorAll('.card'));
+  function apply(f){
+    cards.forEach(function(c){
+      var show = f === 'all'
+        || c.dataset.kind === f
+        || (f === 'a-fail' && c.dataset.fail === 'a')
+        || (f === 'b-fail' && c.dataset.fail === 'b')
+        || (f === 'both-fail' && c.dataset.fail === 'both');
+      c.hidden = !show;
+    });
+    /* 组内全隐藏时收起该组 */
+    [].slice.call(document.querySelectorAll('.fgroup')).forEach(function(g){
+      var any = [].slice.call(g.querySelectorAll('.card')).some(function(c){ return !c.hidden; });
+      g.hidden = !any;
+      if (any && f !== 'all') g.open = true;
+    });
+  }
+  btns.forEach(function(b){
+    b.addEventListener('click', function(){
+      btns.forEach(function(x){ x.setAttribute('aria-pressed','false'); });
+      b.setAttribute('aria-pressed','true');
+      apply(b.dataset.f);
+    });
+  });
+
+  /* 长片段展开 */
+  document.addEventListener('click', function(e){
+    var t = e.target;
+    if (t && t.classList && t.classList.contains('more')){
+      var box = t.closest('.snip');
+      var open = box.classList.toggle('open');
+      t.textContent = open ? '收起' : '展开全部';
+    }
+  });
+  /* 内容未溢出时隐藏「展开」按钮 */
+  [].slice.call(document.querySelectorAll('.snip')).forEach(function(s){
+    var pre = s.querySelector('.snippet'), more = s.querySelector('.more');
+    if (pre && more && pre.scrollHeight <= pre.clientHeight + 2){
+      more.style.display = 'none';
+      var f = s.querySelector('.fade'); if (f) f.style.display = 'none';
+    }
+  });
+
+  /* 锚点跳转时自动展开所在分组 */
+  function openTarget(){
+    var h = location.hash; if (!h) return;
+    var el = document.querySelector(h); if (!el) return;
+    var g = el.closest('.fgroup'); if (g) g.open = true;
+    el.scrollIntoView({block:'start'});
+  }
+  window.addEventListener('hashchange', openTarget);
+  openTarget();
+})();
+</script>

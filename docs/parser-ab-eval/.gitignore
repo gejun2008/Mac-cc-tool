@@ -1,0 +1,10 @@
+eval/anchors.jsonl
+eval/results.jsonl
+eval/crops/
+eval/sources/*
+eval/out_a/*
+eval/out_b/*
+!eval/**/.gitkeep
+report.html
+__pycache__/
+*.pyc
